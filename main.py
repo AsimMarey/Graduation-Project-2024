@@ -1,5 +1,6 @@
 import os
 import tensorflow as tf
+from tensorflow.keras.models import load_model
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel
