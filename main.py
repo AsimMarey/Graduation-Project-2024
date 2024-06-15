@@ -1,15 +1,15 @@
 import os
 import json
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
-import uuid
-from pydantic import BaseModel
-from typing import List
 import tensorflow as tf
 import tensorrt
+import tensorflow.keras.backend as K
 from tensorflow.keras.models import load_model
 from tensorflow.keras.applications.imagenet_utils import preprocess_input
 from tensorflow.keras.layers import DepthwiseConv2D
-import tensorflow.keras.backend as K
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from pydantic import BaseModel
+from typing import List
+
 
 # Initialize the FastAPI app
 app = FastAPI()
@@ -57,7 +57,11 @@ def custom_decode_predictions(preds, class_indices, top=5):
 def process_image(file, model, size, preprocess_input, class_indices, top_k=5):
     # Read the image file using TensorFlow
     content = file.file.read()
-    tf_image = tf.image.decode_image(content)
+    # Convert the image to BytesIO
+    image_bytes = BytesIO(content)
+
+    # Decode the image using TensorFlow
+    tf_image = tf.image.decode_image(image_bytes.getvalue())
 
     # Resize the image to the spatial size required by the model
     image_resized = tf.image.resize(tf_image, size)
