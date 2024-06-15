@@ -19,14 +19,23 @@ model_path = 'my_model.h5'
 class_indices_path = 'plantnet300K_species_id_2_name.json'
 
 
-class CustomDepthwiseConv2D(DepthwiseConv2D):
-    def __init__(self, **kwargs):
-        if 'groups' in kwargs:
-            kwargs.pop('groups')
-        super(CustomDepthwiseConv2D, self).__init__(**kwargs)
+# Set up GPU memory growth
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except RuntimeError as e:
+        print(e)
 
-custom_objects = {'DepthwiseConv2D': CustomDepthwiseConv2D}
-model = load_model(model_path, custom_objects=custom_objects)
+# Try to load the model
+try:
+    model = load_model(model_path)
+    print("Model loaded successfully")
+except Exception as e:
+    model = None
+    print(f"Error loading model: {e}")
+
 
 # Load the original class indices from the JSON file
 with open(class_indices_path, 'r') as f:
