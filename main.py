@@ -39,55 +39,43 @@ class_indices = {str(i): label for i, (original_idx, label) in enumerate(origina
 with open('new_class_indices.json', 'w') as f:
     json.dump(class_indices, f)
 
-# Define request and response models
-class PredictionRequest(BaseModel):
-    top_k: int = 5
+def preprocess_input(image_batch):
+    # Preprocess the input image here
+    return tf.keras.applications.mobilenet_v2.preprocess_input(image_batch)
 
-class PredictionResponse(BaseModel):
-    predictions: List[List[dict]]
-    
 def custom_decode_predictions(preds, class_indices, top=5):
     results = []
     for pred in preds:
         top_indices = pred.argsort()[-top:][::-1]
-        result = [{'label': class_indices[str(i)], 'probability': float(pred[i])} for i in top_indices]
+        result = [(class_indices[str(i)], float(pred[i])) for i in top_indices]
         results.append(result)
     return results
 
-def process_image(file, model, size, preprocess_input, class_indices, top_k=5):
-    # Read the image file using TensorFlow
-    content = file.file.read()
-    # Convert the image to BytesIO
-    image_bytes = BytesIO(content)
-
-    # Decode the image using TensorFlow
-    tf_image = tf.image.decode_image(image_bytes.getvalue())
-
-    # Resize the image to the spatial size required by the model
-    image_resized = tf.image.resize(tf_image, size)
-
-    # Add a batch dimension to the first axis (required)
-    image_batch = tf.expand_dims(image_resized, axis=0)
-
-    # Pre-process the input image
-    image_batch = preprocess_input(image_batch)
-
-    # Forward pass through the model to make predictions
-    preds = model.predict(image_batch)
-
-    # Decode (and rank the top-k) predictions
-    decoded_preds = custom_decode_predictions(preds, class_indices, top=top_k)
+def process_images(model, images, size, preprocess_input, top_k=2):
+    results = []
+    for idx, image in enumerate(images):
+        try:
+            image = Image.open(BytesIO(image))
+            image = image.resize(size)
+            image_array = tf.keras.preprocessing.image.img_to_array(image)
+            image_batch = np.expand_dims(image_array, axis=0)
+            image_batch = preprocess_input(image_batch)
+            preds = model.predict(image_batch)
+            decoded_preds = custom_decode_predictions(preds, class_indices, top=top_k)
+            results.append(decoded_preds)
+        except Exception as e:
+            results.append(f"Error processing image {idx}: {e}")
+    return results
     
-    return decoded_preds
-    
-@app.post("/predict", response_model=PredictionResponse)
-async def predict(file: UploadFile = File(...), request: PredictionRequest = None):
-    try:
-        size = (256, 256)
-        predictions = process_image(file, model, size, preprocess_input, class_indices, request.top_k)
-        return PredictionResponse(predictions=predictions)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+@app.post('/predict', response_model=list)
+async def predict(files: List[UploadFile] = File(...), top_k: int = 5):
+    if model is None:
+        raise HTTPException(status_code=500, detail="Model could not be loaded")
+
+    images = [await file.read() for file in files]
+    size = (256, 256)
+    results = process_images(model, images, size, preprocess_input, top_k)
+    return results
 
 if __name__ == '__main__':
     import uvicorn
