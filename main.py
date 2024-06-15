@@ -9,7 +9,13 @@ import json
 from io import BytesIO
 from PIL import Image
 
+# Initialize the FastAPI app
 app = FastAPI()
+
+# Load the model and class indices
+model_path = 'my_model.h5'
+class_indices_path = 'plantnet300K_species_id_2_name.json'
+
 
 # Set up GPU memory growth
 gpus = tf.config.list_physical_devices('GPU')
@@ -22,14 +28,15 @@ if gpus:
 
 # Try to load the model
 try:
-    model = tf.keras.models.load_model('my_model.h5')
+    model = load_model(model_path)
     print("Model loaded successfully")
 except Exception as e:
     model = None
     print(f"Error loading model: {e}")
 
+
 # Load the original class indices from the JSON file
-with open('plantnet300K_species_id_2_name.json', 'r') as f:
+with open(class_indices_path, 'r') as f:
     original_class_indices = json.load(f)
 
 # Create a new mapping from 0 to len(original_class_indices) - 1
@@ -66,7 +73,7 @@ def process_images(model, images, size, preprocess_input, top_k=2):
         except Exception as e:
             results.append(f"Error processing image {idx}: {e}")
     return results
-
+    
 @app.post('/predict', response_model=list)
 async def predict(files: List[UploadFile] = File(...), top_k: int = 5):
     if model is None:
@@ -78,5 +85,6 @@ async def predict(files: List[UploadFile] = File(...), top_k: int = 5):
     return results
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 10034))  # Use PORT environment variable or default to 8000
+    import uvicorn
+    port = int(os.environ.get('PORT', 10034))
     uvicorn.run(app, host='0.0.0.0', port=port)
