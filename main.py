@@ -54,15 +54,19 @@ async def identify_plant(
         for res in results:
             score = res.get("score", 0)
             probability = round(score * 100, 2)
-            species_info = res.get("species", {})
-            scientific_name = species_info.get("scientificNameWithoutAuthor", "N/A")
-            common_names = species_info.get("commonNames", ["N/A"])
-            common_name = common_names[0] if common_names else "N/A"
-            parsed_results.append({
-                "probability": probability,
-                "scientific_name": scientific_name,
-                "common_name": common_name
-            })
+            if probability > 5:
+                species_info = res.get("species", {})
+                scientific_name = species_info.get("scientificNameWithoutAuthor", "N/A")
+                common_names = species_info.get("commonNames", ["N/A"])
+                common_name = common_names[0] if common_names else "N/A"
+                parsed_results.append({
+                    "probability": f"{probability}%",  # Attach % to the formatted probability string
+                    "scientific_name": scientific_name,
+                    "common_name": common_name
+                })
+
+        if not parsed_results:
+            raise HTTPException(status_code=400, detail="No results found with probability higher than 5%")
 
         return {"results": parsed_results}
 
