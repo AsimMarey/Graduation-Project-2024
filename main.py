@@ -74,7 +74,11 @@ async def identify_plant(
         raise HTTPException(status_code=e.response.status_code, detail=f"External API error: {e.response.text}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
+        
+@app.head("/")
+async def head_index():
+    return {"message": "Service is running"}
+    
 if __name__ == '__main__':
     import uvicorn
     import os
