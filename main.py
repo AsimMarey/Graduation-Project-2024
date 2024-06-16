@@ -1,5 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from pydantic import BaseModel, conlist
+from pydantic import BaseModel, conlist, validator
 from typing import Literal, List
 import httpx
 
