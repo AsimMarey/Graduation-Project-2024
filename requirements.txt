@@ -8,3 +8,4 @@ psutil
 httpx
 tensorrt
 pillow
+pydantic
