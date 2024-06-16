@@ -1,6 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel, conlist
-from typing import Literal
+from typing import Literal, LIst
 import httpx
 
 app = FastAPI()
@@ -10,13 +10,20 @@ API_KEY = "2b10jRtH0kF5BARgBUnUk9eKdO"
 PROJECT = "all" 
 
 class OrgansModel(BaseModel):
-    organs: conlist(Literal['leaf', 'flower', 'fruit', 'auto'], min_items=1, max_items=1)
+    organs: Literal['leaf', 'flower', 'fruit', 'auto']
 
-
+    @validator('organs', pre=True)
+    def check_organs(cls, v):
+        if isinstance(v, list):
+            if len(v) != 1:
+                raise ValueError('Exactly one organ should be specified.')
+            v = v[0]
+        return v
+        
 # Define the endpoint for image upload and external API call
 @app.post("/identify-plant")
 async def identify_plant(
-    organs: Literal['leaf', 'flower', 'fruit', 'auto'] = Form(...),
+    organs: List[Literal['leaf', 'flower', 'fruit', 'auto']] = Form(...),
     image: UploadFile = File(...)
 ):
     # Define the external API URL
@@ -26,10 +33,10 @@ async def identify_plant(
     image_content = await image.read()
     
     # Prepare the data for the external API request
-    files = {"images": image_content}
+    files = {"images": (image.filename, image_content, image.content_type)}
     data = {
         "api-key": API_KEY,
-        "organs": organs
+        "organs": organs[0]
     }
     
     try:
