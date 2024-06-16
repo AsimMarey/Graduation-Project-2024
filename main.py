@@ -15,7 +15,7 @@ async def identify_plant(
     image: UploadFile = File(...)
 ):
     # Define the external API URL
-    external_api_url = "https://my.plantnet.org/doc/openapi/v2/identify/{project}"
+    external_api_url = "https://my.plantnet.org/doc/openapi/v2/identify/all"
     
     # Read the image file content
     image_content = await image.read()
