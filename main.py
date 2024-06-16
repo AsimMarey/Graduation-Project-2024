@@ -1,11 +1,11 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from pydantic import BaseModel, conlist, validator
+from pydantic import BaseModel, validator
 from typing import Literal, List
 import httpx
 
 app = FastAPI()
 
-# Constants
+# Constant
 API_KEY = "2b10jRtH0kF5BARgBUnUk9eKdO" 
 PROJECT = "all" 
 
@@ -26,7 +26,7 @@ async def identify_plant(
     organs: List[Literal['leaf', 'flower', 'fruit', 'auto']] = Form(...),
     image: UploadFile = File(...)
 ):
-    # Define the external API URL
+    # Define the external API URL with API key
     external_api_url = f"https://my-api.plantnet.org/v2/identify/{PROJECT}?api-key={API_KEY}"
     
     # Read the image file content
@@ -35,8 +35,7 @@ async def identify_plant(
     # Prepare the data for the external API request
     files = {"images": (image.filename, image_content, image.content_type)}
     data = {
-        "api-key": API_KEY,
-        "organs": organs[0]
+        "organs": organs[0]  # Since organs should be exactly one item
     }
     
     try:
