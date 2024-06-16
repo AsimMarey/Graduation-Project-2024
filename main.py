@@ -6,7 +6,8 @@ app = FastAPI()
 
 # Constants
 TYPE = "kt"
-API_KEY = "2b10jRtH0kF5BARgBUnUk9eKdO"
+API_KEY = "2b10jRtH0kF5BARgBUnUk9eKdO" 
+PROJECT = "all" 
 
 # Define the endpoint for image upload and external API call
 @app.post("/identify-plant")
@@ -15,7 +16,7 @@ async def identify_plant(
     image: UploadFile = File(...)
 ):
     # Define the external API URL
-    external_api_url = "https://my.plantnet.org/doc/openapi/v2/identify/all"
+    external_api_url = f"https://my-api.plantnet.org/v2/identify/{PROJECT}?api-key={API_KEY}"
     
     # Read the image file content
     image_content = await image.read()
