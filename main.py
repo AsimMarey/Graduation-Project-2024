@@ -58,7 +58,7 @@ async def identify_plant(
             common_names = species_info.get("commonNames", ["N/A"])
             common_name = common_names[0] if common_names else "N/A"
             parsed_results.append({
-                "score": score,
+                "probability": score*100%,
                 "scientific_name": scientific_name,
                 "common_name": common_name
             })
