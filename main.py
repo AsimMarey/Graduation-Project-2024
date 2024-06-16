@@ -53,12 +53,13 @@ async def identify_plant(
         parsed_results = []
         for res in results:
             score = res.get("score", 0)
+            probability = round(score * 100, 2)
             species_info = res.get("species", {})
             scientific_name = species_info.get("scientificNameWithoutAuthor", "N/A")
             common_names = species_info.get("commonNames", ["N/A"])
             common_name = common_names[0] if common_names else "N/A"
             parsed_results.append({
-                "probability": score*100%,
+                "probability": probability,
                 "scientific_name": scientific_name,
                 "common_name": common_name
             })
