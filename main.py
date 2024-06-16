@@ -1,6 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel, conlist
-from typing import List
+from typing import Literal
 import httpx
 
 app = FastAPI()
