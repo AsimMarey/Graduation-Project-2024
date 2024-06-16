@@ -5,14 +5,17 @@ from typing import List
 app = FastAPI()
 
 # Constants
-TYPE = "kt"
 API_KEY = "2b10jRtH0kF5BARgBUnUk9eKdO" 
 PROJECT = "all" 
+
+class OrgansModel(BaseModel):
+    organs: conlist(Literal['leaf', 'flower', 'fruit', 'auto'], min_items=1, max_items=1)
+
 
 # Define the endpoint for image upload and external API call
 @app.post("/identify-plant")
 async def identify_plant(
-    organs: List[str] = Form(...),
+    organs: Literal['leaf', 'flower', 'fruit', 'auto'] = Form(...),
     image: UploadFile = File(...)
 ):
     # Define the external API URL
@@ -24,7 +27,6 @@ async def identify_plant(
     # Prepare the data for the external API request
     files = {"images": image_content}
     data = {
-        "type": TYPE,
         "api-key": API_KEY,
         "organs": organs
     }
