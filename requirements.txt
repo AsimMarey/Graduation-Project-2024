@@ -9,3 +9,4 @@ httpx
 tensorrt
 pillow
 pydantic
+typing
