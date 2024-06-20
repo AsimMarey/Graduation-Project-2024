@@ -1,3 +1,10 @@
+import os
+import tensorflow as tf
+from fastapi.responses import JSONResponse, HTMLResponse
+import numpy as np
+import json
+from io import BytesIO
+from PIL import Image
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel, validator
 from typing import Literal, List
@@ -8,6 +15,64 @@ app = FastAPI()
 # Constant
 API_KEY = "2b10jRtH0kF5BARgBUnUk9eKdO" 
 PROJECT = "all" 
+
+
+# Set up GPU memory growth
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+    except RuntimeError as e:
+        print(e)
+
+# Try to load the model
+try:
+    model = tf.keras.models.load_model('my_model.h5')
+    print("Model loaded successfully")
+except Exception as e:
+    model = None
+    print(f"Error loading model: {e}")
+
+# Load the original class indices from the JSON file
+with open('plantnet300K_species_id_2_name.json', 'r') as f:
+    original_class_indices = json.load(f)
+
+# Create a new mapping from 0 to len(original_class_indices) - 1
+class_indices = {str(i): label for i, (original_idx, label) in enumerate(original_class_indices.items())}
+
+# Save the new mapping to a new JSON file (optional)
+with open('new_class_indices.json', 'w') as f:
+    json.dump(class_indices, f)
+
+def preprocess_input(image_batch):
+    # Preprocess the input image here
+    return tf.keras.applications.mobilenet_v2.preprocess_input(image_batch)
+
+def custom_decode_predictions(preds, class_indices, top=5):
+    results = []
+    for pred in preds:
+        top_indices = pred.argsort()[-top:][::-1]
+        result = [(class_indices[str(i)], float(pred[i])) for i in top_indices]
+        results.append(result)
+    return results
+
+def process_images(model, images, size, preprocess_input, top_k=2):
+    results = []
+    for idx, image in enumerate(images):
+        try:
+            image = Image.open(BytesIO(image))
+            image = image.resize(size)
+            image_array = tf.keras.preprocessing.image.img_to_array(image)
+            image_batch = np.expand_dims(image_array, axis=0)
+            image_batch = preprocess_input(image_batch)
+            preds = model.predict(image_batch)
+            decoded_preds = custom_decode_predictions(preds, class_indices, top=top_k)
+            results.append(decoded_preds)
+        except Exception as e:
+            results.append(f"Error processing image {idx}: {e}")
+    return results
+
 
 class OrgansModel(BaseModel):
     organs: Literal['leaf', 'flower', 'fruit', 'auto']
@@ -33,6 +98,7 @@ async def identify_plant(
     image_content = await image.read()
     
     # Prepare the data for the external API request
+    size = (256, 256)
     files = {"images": (image.filename, image_content, image.content_type)}
     data = {
         "organs": organs[0]  # Since organs should be exactly one item
